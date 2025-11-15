@@ -5,7 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import 'package:food_point/ui/formularioRestaurante/view_model/formularioRestaurante.dart';
-
+import 'package:food_point/widgets/bottom_nav_var.dart';
 
 
 class SaboresApp extends StatelessWidget {
@@ -266,35 +266,10 @@ class _RestaurantesPageState extends State<RestaurantesPage> {
                 ),
               ],
             ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2,
-        selectedItemColor: const Color(0xFFFF6A00),
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: "Inicio",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book_outlined),
-            label: "Catálogo",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant_menu),
-            label: "Restaurantes",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
-            label: "Mapa",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: "Perfil",
-          ),
-        ],
-      ),
+
+
+      bottomNavigationBar: const CustomBottomNav(selectedIndex: 2), // pestaña activa
+
     );
   }
 
