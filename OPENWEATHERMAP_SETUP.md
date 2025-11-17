@@ -35,3 +35,6 @@ En `ios/Runner/Info.plist`, añade:
 <string>Necesitamos tu ubicación para mostrar el clima actual</string>
 ```
 
+
+
+

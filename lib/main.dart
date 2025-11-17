@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 
@@ -102,6 +103,7 @@ class _HomePageState extends State<HomePage> {
   // Búsqueda y filtros
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _countController = TextEditingController();
+  bool _isProgrammaticCountUpdate = false;
   String _searchQuery = '';
   int _resultCount = 0; // 0 significa sin límite
   
@@ -263,6 +265,71 @@ class _HomePageState extends State<HomePage> {
       default:
         return '🌤️';
     }
+  }
+
+  void _updateCountController(int? value) {
+    _isProgrammaticCountUpdate = true;
+    if (value == null || value == 0) {
+      _countController.clear();
+    } else {
+      final text = value.toString();
+      _countController.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
+    _isProgrammaticCountUpdate = false;
+  }
+
+  void _setResultCount(int value) {
+    final clamped = value.clamp(1, 99);
+    setState(() {
+      _resultCount = clamped;
+    });
+    _updateCountController(clamped);
+  }
+
+  void _incrementCount() {
+    if (_resultCount == 0) {
+      _setResultCount(1);
+      return;
+    }
+    if (_resultCount < 99) {
+      _setResultCount(_resultCount + 1);
+    }
+  }
+
+  void _decrementCount() {
+    if (_resultCount == 0 || _resultCount == 1) {
+      _setResultCount(1);
+      return;
+    }
+    _setResultCount(_resultCount - 1);
+  }
+
+  void _handleCountChange(String value) {
+    if (_isProgrammaticCountUpdate) return;
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      setState(() {
+        _resultCount = 0;
+      });
+      return;
+    }
+
+    final parsed = int.tryParse(trimmed);
+    if (parsed == null) {
+      _updateCountController(_resultCount);
+      return;
+    }
+
+    final clamped = parsed.clamp(1, 99);
+    if (clamped != parsed) {
+      _updateCountController(clamped);
+    }
+    setState(() {
+      _resultCount = clamped;
+    });
   }
 
   List<Dish> get _filteredDishes {
@@ -543,7 +610,10 @@ class _HomePageState extends State<HomePage> {
                 ? const Color(0xFF2D1F24) 
                 : const Color(0xFFFFE0E6),
           ),
-          padding: EdgeInsets.all(_getResponsiveSize(context, mobile: 12.0, tablet: 16.0, desktop: 20.0)),
+          padding: EdgeInsets.symmetric(
+            horizontal: _getResponsiveSize(context, mobile: 10.0, tablet: 14.0, desktop: 18.0),
+            vertical: _getResponsiveSize(context, mobile: 8.0, tablet: 10.0, desktop: 12.0),
+          ),
           child: _buildNav(),
         ),
         // Main content area
@@ -610,13 +680,16 @@ class _HomePageState extends State<HomePage> {
         // Nav
         Container(
           width: double.infinity,
-          height: _getResponsiveSize(context, mobile: 120.0, tablet: 140.0, desktop: 160.0),
+          height: _getResponsiveSize(context, mobile: 70.0, tablet: 80.0, desktop: 90.0),
           decoration: BoxDecoration(
             color: widget.isDarkMode 
                 ? const Color(0xFF2D1F24) 
                 : const Color(0xFFFFE0E6),
           ),
-          padding: EdgeInsets.all(_getResponsiveSize(context, mobile: 12.0, tablet: 16.0, desktop: 20.0)),
+          padding: EdgeInsets.symmetric(
+            horizontal: _getResponsiveSize(context, mobile: 12.0, tablet: 16.0, desktop: 20.0),
+            vertical: _getResponsiveSize(context, mobile: 6.0, tablet: 8.0, desktop: 10.0),
+          ),
           child: _buildNav(),
         ),
         // Aside
@@ -835,7 +908,7 @@ class _HomePageState extends State<HomePage> {
                           ElevatedButton(
                             onPressed: () {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Ver Restaurante')),
+                                const SnackBar(content: Text('Ver Restaurantes')),
                               );
                             },
                             style: ElevatedButton.styleFrom(
@@ -850,7 +923,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                             child: Text(
-                              'Ver Restaurante',
+                              'Ver Restaurantes',
                               style: TextStyle(
                                 fontSize: _getResponsiveSize(context, mobile: 12.0, tablet: 14.0, desktop: 16.0),
                               ),
@@ -870,116 +943,114 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildNav() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Search bar
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Buscar platos ...',
-              hintStyle: TextStyle(
-                color: Colors.grey[400],
-                fontSize: _getResponsiveSize(context, mobile: 12.0, tablet: 14.0, desktop: 16.0),
-              ),
-              prefixIcon: Icon(
-                Icons.search,
-                color: Colors.grey[600],
-                size: _getResponsiveSize(context, mobile: 20.0, tablet: 22.0, desktop: 24.0),
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: _getResponsiveSize(context, mobile: 12.0, tablet: 16.0, desktop: 20.0),
-                vertical: _getResponsiveSize(context, mobile: 10.0, tablet: 12.0, desktop: 14.0),
-              ),
-            ),
-            style: TextStyle(
-              fontSize: _getResponsiveSize(context, mobile: 12.0, tablet: 14.0, desktop: 16.0),
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
+    final searchField = Expanded(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+            width: 1.5,
           ),
         ),
-        SizedBox(height: _getResponsiveSize(context, mobile: 8.0, tablet: 10.0, desktop: 12.0)),
-        // Count input
-        Row(
-          children: [
-            Text(
-              'Cantidad:',
+        child: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: 'Buscar platos ...',
+            hintStyle: TextStyle(
+              color: Colors.grey[500],
+              fontSize: _getResponsiveSize(context, mobile: 12.0, tablet: 14.0, desktop: 16.0),
+            ),
+            prefixIcon: Icon(
+              Icons.search,
+              color: Colors.grey[600],
+              size: _getResponsiveSize(context, mobile: 18.0, tablet: 20.0, desktop: 22.0),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: _getResponsiveSize(context, mobile: 10.0, tablet: 12.0, desktop: 14.0),
+              vertical: _getResponsiveSize(context, mobile: 6.0, tablet: 8.0, desktop: 10.0),
+            ),
+            isDense: true,
+          ),
+          style: TextStyle(
+            fontSize: _getResponsiveSize(context, mobile: 12.0, tablet: 14.0, desktop: 16.0),
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+          onChanged: (value) {
+            setState(() {
+              _searchQuery = value;
+            });
+          },
+        ),
+      ),
+    );
+
+    final counterWidth = _getResponsiveSize(context, mobile: 90.0, tablet: 100.0, desktop: 110.0);
+
+    final counterField = Container(
+      width: counterWidth,
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _countController,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 4),
+              ),
               style: TextStyle(
-                fontSize: _getResponsiveSize(context, mobile: 11.0, tablet: 13.0, desktop: 15.0),
+                fontSize: _getResponsiveSize(context, mobile: 13.0, tablet: 15.0, desktop: 17.0),
+                fontWeight: FontWeight.w600,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
+              onChanged: _handleCountChange,
             ),
-            SizedBox(width: _getResponsiveSize(context, mobile: 8.0, tablet: 10.0, desktop: 12.0)),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 2,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _countController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'Sin límite',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: _getResponsiveSize(context, mobile: 11.0, tablet: 13.0, desktop: 15.0),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: _getResponsiveSize(context, mobile: 8.0, tablet: 10.0, desktop: 12.0),
-                      vertical: _getResponsiveSize(context, mobile: 6.0, tablet: 8.0, desktop: 10.0),
-                    ),
+          ),
+          SizedBox(
+            width: _getResponsiveSize(context, mobile: 26.0, tablet: 28.0, desktop: 30.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                InkWell(
+                  onTap: _incrementCount,
+                  child: Icon(
+                    Icons.arrow_drop_up,
+                    size: _getResponsiveSize(context, mobile: 18.0, tablet: 20.0, desktop: 22.0),
                   ),
-                  style: TextStyle(
-                    fontSize: _getResponsiveSize(context, mobile: 11.0, tablet: 13.0, desktop: 15.0),
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      _resultCount = int.tryParse(value) ?? 0;
-                    });
-                  },
                 ),
-              ),
+                InkWell(
+                  onTap: _decrementCount,
+                  child: Icon(
+                    Icons.arrow_drop_down,
+                    size: _getResponsiveSize(context, mobile: 18.0, tablet: 20.0, desktop: 22.0),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+
+    return Row(
+      children: [
+        searchField,
+        SizedBox(width: _getResponsiveSize(context, mobile: 8.0, tablet: 10.0, desktop: 12.0)),
+        counterField,
       ],
     );
   }
@@ -1102,7 +1173,7 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ),
                                 const Spacer(),
-                                Text(
+            Text(
                                   '${dish.restaurantCount} rest.',
                                   style: TextStyle(
                                     fontSize: _getResponsiveSize(context, mobile: 10.0, tablet: 12.0, desktop: 14.0),
@@ -1110,10 +1181,10 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ),
                               ],
-                            ),
-                          ],
-                        ),
-                      ),
+            ),
+          ],
+        ),
+      ),
                     );
                   },
                 ),
