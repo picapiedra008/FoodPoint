@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "28445900517",
+    "project_id": "foodpoint-71b1d",
+    "storage_bucket": "foodpoint-71b1d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:28445900517:android:a5a224ff865c99586c9e0c",
+        "android_client_info": {
+          "package_name": "com.example.food_point"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "28445900517-8buo0dd7tasafsi329rj4uhkgc2manv6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.food_point",
+            "certificate_hash": "fd1ffc748bdca665a26deeddd19160522713ba77"
+          }
+        },
+        {
+          "client_id": "28445900517-66jg634a2haffgbbo7otlj9rdfn8ta5t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO3j8ycYuqyeMcLcr_JZLXtnOi5oMrqtY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "28445900517-3l8hsaaqktfmbss8r9dp20sjfks9oogm.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "28445900517-orp711slgscac2b54qkassfsua743bi4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.foodPoint"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

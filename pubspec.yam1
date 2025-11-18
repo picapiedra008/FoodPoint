@@ -1,0 +1,71 @@
+name: prueba1
+description: A new Flutter project.
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase (opcional, si usas)
+  firebase_core: ^4.2.1
+  cloud_firestore: ^6.1.0
+  firebase_auth: ^6.1.2
+  firebase_storage: ^13.0.4
+
+  # Navegación avanzada
+  go_router: ^17.0.0
+
+  # Manejo de estado (elige uno)
+  provider: ^6.0.0
+  flutter_bloc: ^9.0.0
+
+  # Animaciones
+  lottie: ^3.1.0
+
+  # HTTP
+  dio: ^5.0.0
+
+  # Utilidades
+  intl: ^0.20.2
+  shared_preferences: ^2.2.0
+
+  cupertino_icons: ^1.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+
+  uses-material-design: true
+
+  # ----------------------------------------
+  # ASSETS
+  # ----------------------------------------
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/fonts/
+    - assets/animations/
+    - assets/videos/
+    - assets/audio/
+    - assets/data/local/
+    - assets/data/json/
+
+  # ----------------------------------------
+  # FONTS (opcional, ejemplo base)
+  # ----------------------------------------
+  fonts:
+    - family: Montserrat
+      fonts:
+        - asset: assets/fonts/Montserrat-Regular.ttf
+        - asset: assets/fonts/Montserrat-Bold.ttf
+          weight: 700
