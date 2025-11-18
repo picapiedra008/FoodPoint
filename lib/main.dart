@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 
@@ -94,7 +93,7 @@ class Dish {
 }
 
 class _HomePageState extends State<HomePage> {
-  final String _location = 'Cochabamba - Bolivia';
+  String _location = 'Cochabamba - Bolivia';
   String _dateTime = '';
   String _temperature = '--';
   String _weatherIcon = '';
@@ -124,8 +123,9 @@ class _HomePageState extends State<HomePage> {
   ];
   
   // TODO: Reemplaza con tu API key de OpenWeatherMap
-  // Obtén tu API key gratis en: https://openweathermap.org/api
-  static const String _apiKey = 'TU_API_KEY_AQUI';
+  // API key proporcionada por el usuario (se mantiene tal cual; se trim() al usarla).
+  // Si prefieres, reemplázala por tu clave sin espacios.
+  static String _apiKey = 'fb8194e4216e7c02a6cf94a12958d53d w';
   static const String _baseUrl = 'https://api.openweathermap.org/data/2.5/weather';
   
   @override
@@ -187,32 +187,37 @@ class _HomePageState extends State<HomePage> {
     });
 
     try {
-      // Obtener ubicación actual
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        throw Exception('Servicio de ubicación deshabilitado');
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          throw Exception('Permisos de ubicación denegados');
+      // Intentar obtener ubicación actual; si falla, usamos la ciudad en `_location`.
+      Position? position;
+      try {
+        bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+        if (serviceEnabled) {
+          LocationPermission permission = await Geolocator.checkPermission();
+          if (permission == LocationPermission.denied) {
+            permission = await Geolocator.requestPermission();
+          }
+          if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+            position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low);
+          }
         }
+      } catch (_) {
+        // Ignorar errores de geolocalización y proceder con búsqueda por ciudad
+        position = null;
       }
 
-      if (permission == LocationPermission.deniedForever) {
-        throw Exception('Permisos de ubicación denegados permanentemente');
+      // Preparar clave (quitamos espacios accidentales)
+      final apiKey = _apiKey.trim();
+
+      // Construir URL: por lat/lon si hay posición, si no por ciudad (q)
+      final Uri url;
+      if (position != null) {
+        url = Uri.parse('$_baseUrl?lat=${position.latitude}&lon=${position.longitude}&appid=$apiKey&units=metric&lang=es');
+      } else {
+        // Extraer nombre de ciudad si `_location` tiene formato 'Ciudad - País'
+        final city = _location.split('-').first.trim();
+        final q = Uri.encodeQueryComponent(city);
+        url = Uri.parse('$_baseUrl?q=$q&appid=$apiKey&units=metric&lang=es');
       }
-
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.low,
-      );
-
-      // Hacer petición a OpenWeatherMap
-      final url = Uri.parse(
-        '$_baseUrl?lat=${position.latitude}&lon=${position.longitude}&appid=$_apiKey&units=metric&lang=es',
-      );
 
       final response = await http.get(url).timeout(
         const Duration(seconds: 10),
@@ -223,13 +228,21 @@ class _HomePageState extends State<HomePage> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final temp = data['main']['temp'].round().toString();
-        final weatherMain = data['weather'][0]['main'].toLowerCase();
+        final temp = data['main']?['temp'] != null ? data['main']['temp'].round().toString() : '--';
+        final weatherMain = (data['weather'] != null && data['weather'].isNotEmpty)
+            ? data['weather'][0]['main'].toLowerCase()
+            : '';
         final weatherIcon = _getWeatherIcon(weatherMain);
+
+        // Actualizar ubicación a la que responde la API si existe
+        final name = data['name'] ?? '';
+        final country = data['sys'] != null ? (data['sys']['country'] ?? '') : '';
+        final locationText = name.isNotEmpty ? (country.isNotEmpty ? '$name - $country' : name) : _location;
 
         setState(() {
           _temperature = temp;
           _weatherIcon = weatherIcon;
+          _location = locationText;
           _isLoadingWeather = false;
         });
       } else {
@@ -455,52 +468,69 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Logo and icons row
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          // Top area: left logo + right icons, with the title centered across the full width
+          Stack(
+            alignment: Alignment.center,
             children: [
-              // Logo on the left
-              Image.asset(
-                widget.isDarkMode 
-                    ? 'assets/images/logos/logo2.png' 
-                    : 'assets/images/logos/logo.png',
-                height: logoSize,
-                width: logoSize,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(
-                    Icons.restaurant,
-                    size: logoSize,
-                    color: Theme.of(context).colorScheme.secondary,
-                  );
-                },
-              ),
-              const Spacer(),
-              // Icons on the right
               Row(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.settings, size: iconSize),
-                    color: Theme.of(context).colorScheme.onSurface,
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Ajustes')),
+                  // Logo on the left
+                  Image.asset(
+                    widget.isDarkMode 
+                        ? 'assets/images/logos/logo2.png' 
+                        : 'assets/images/logos/logo.png',
+                    height: logoSize,
+                    width: logoSize,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        Icons.restaurant,
+                        size: logoSize,
+                        color: Theme.of(context).colorScheme.secondary,
                       );
                     },
                   ),
-                  IconButton(
-                    icon: Icon(
-                      widget.isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                      size: iconSize,
-                    ),
-                    color: Theme.of(context).colorScheme.onSurface,
-                    onPressed: widget.toggleDarkMode,
+                  // Icons on the right
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.settings, size: iconSize),
+                        color: Theme.of(context).colorScheme.onSurface,
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Ajustes')),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          widget.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                          size: iconSize,
+                        ),
+                        color: Theme.of(context).colorScheme.onSurface,
+                        onPressed: widget.toggleDarkMode,
+                      ),
+                    ],
                   ),
                 ],
               ),
+              // Centered title overlay
+              Center(
+                child: Text(
+                  'Sabores de Mi Tierra',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: fontSizeAppName,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                    height: 0.95,
+                  ),
+                ),
+              ),
             ],
           ),
-          SizedBox(height: _getResponsiveSize(context, mobile: 8.0, tablet: 10.0, desktop: 12.0)),
+          SizedBox(height: _getResponsiveSize(context, mobile: 4.0, tablet: 6.0, desktop: 8.0)),
           // Location, weather and date/time centered
           Center(
             child: Column(
@@ -553,52 +583,18 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
                 SizedBox(height: _getResponsiveSize(context, mobile: 4.0, tablet: 6.0, desktop: 8.0)),
-                // Date and Time
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.access_time,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: iconSize * 0.9,
-                    ),
-                    SizedBox(width: _getResponsiveSize(context, mobile: 4.0, tablet: 6.0, desktop: 8.0)),
-                    Text(
-                      _dateTime,
-                      style: TextStyle(
-                        fontSize: fontSizeDateTime,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),
           SizedBox(height: _getResponsiveSize(context, mobile: 8.0, tablet: 10.0, desktop: 12.0)),
-          // App name centered at the bottom
-          Center(
-            child: Text(
-              'Sabores de Mi Tierra',
-              style: TextStyle(
-                fontSize: fontSizeAppName,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ),
+          // (Title moved to top row — removed duplicate here)
         ],
       ),
     );
   }
 
   Widget _buildTabletLayout() {
-    final fontSize = _getResponsiveSize(
-      context,
-      mobile: 18.0,
-      tablet: 20.0,
-      desktop: 24.0,
-    );
+    // fontSize removed (not used) to avoid analyzer warning
 
     return Row(
       children: [
@@ -654,12 +650,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildMobileLayout() {
-    final fontSize = _getResponsiveSize(
-      context,
-      mobile: 16.0,
-      tablet: 18.0,
-      desktop: 20.0,
-    );
+    // fontSize removed (not used) to avoid analyzer warning
 
     return Column(
       children: [
@@ -720,7 +711,7 @@ class _HomePageState extends State<HomePage> {
             child: Text(
               'Footer',
               style: TextStyle(
-                fontSize: fontSize,
+                fontSize: _getResponsiveSize(context, mobile: 16.0, tablet: 18.0, desktop: 20.0),
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -732,8 +723,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildDishOfTheDay() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth > 600;
+    // screenWidth/isTablet not needed here
     
     final titleFontSize = _getResponsiveSize(
       context,
@@ -760,7 +750,7 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // "Recomendado Hoy" header
+          // "Recomendado Hoy" header with date/time aligned right
           Row(
             children: [
               Icon(
@@ -769,12 +759,23 @@ class _HomePageState extends State<HomePage> {
                 size: _getResponsiveSize(context, mobile: 18.0, tablet: 20.0, desktop: 22.0),
               ),
               SizedBox(width: _getResponsiveSize(context, mobile: 6.0, tablet: 8.0, desktop: 10.0)),
+              Expanded(
+                child: Text(
+                  'Recomendado Hoy',
+                  style: TextStyle(
+                    fontSize: _getResponsiveSize(context, mobile: 16.0, tablet: 18.0, desktop: 20.0),
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              // Date/time on the right, in the same highlighted format
               Text(
-                'Recomendado Hoy',
+                _dateTime,
                 style: TextStyle(
-                  fontSize: _getResponsiveSize(context, mobile: 16.0, tablet: 18.0, desktop: 20.0),
+                  fontSize: _getResponsiveSize(context, mobile: 12.0, tablet: 14.0, desktop: 16.0),
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
                 ),
               ),
             ],
