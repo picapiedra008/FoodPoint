@@ -13,8 +13,9 @@ import 'package:food_point/ui/home/view_model/home_screen.dart';
 import 'widgets/catalogo_platos.dart';
 import 'package:food_point/ui/listar_restaurantes/view_model/listar_restaurantes_screen.dart';
 import 'package:food_point/ui/perfil_page/view_model/perfil_screen.dart';
-
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
+  
   WidgetsFlutterBinding.ensureInitialized();
   bool firebaseConnected = false;
 
@@ -71,6 +72,7 @@ class _MyAppState extends State<MyApp> {
     // Mostrar un loading mientras se verifica el estado de autenticación
     if (isUserLoggedIn == null) {
       return MaterialApp(
+        navigatorKey: navigatorKey,
         home: Scaffold(
           body: Center(
             child: Column(

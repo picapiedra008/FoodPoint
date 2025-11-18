@@ -37,14 +37,14 @@ class CustomBottomNav extends StatelessWidget {
           icon: Icon(Icons.home_outlined),
           label: "Inicio",
         ),
-        BottomNavigationBarItem(
+       /* BottomNavigationBarItem(
           icon: Icon(Icons.menu_book_outlined),
           label: "Catálogo",
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.restaurant_menu),
           label: "Restaurantes",
-        ),
+        ),*/
         BottomNavigationBarItem(
           icon: Icon(Icons.person_outline),
           label: "Perfil",
